@@ -357,6 +357,7 @@ typedef struct {
 #ifdef HAVE_SYSTEMD_DAEMON
   int is_systemd;
 #endif /* HAVE_SYSTEMD_DAEMON */
+  char *pidfile;
 } EpmdVars;
 
 void dbg_printf(EpmdVars*,int,const char*,...);

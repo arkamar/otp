@@ -41,12 +41,11 @@ static int check_relaxed(void);
 static int has_console(void);
 #endif
 #ifndef HAVE_SYSTEMD_DAEMON
-static int create_pidfile(void);
-static const char *pidfile = EPMD_PIDFILE;
+static int create_pidfile(const char *);
 #endif
 
 #ifndef HAVE_SYSTEMD_DAEMON
-static int create_pidfile(void)
+static int create_pidfile(const char *pidfile)
 {
     int fd;
 
@@ -210,6 +209,7 @@ int main(int argc, char** argv)
 #ifdef HAVE_SYSTEMD_DAEMON
     g->is_systemd     = 0;
 #endif /* HAVE_SYSTEMD_DAEMON */
+    g->pidfile        = NULL;
 
     for (i = 0; i < MAX_LISTEN_SOCKETS; i++)
 	g->listenfd[i] = -1;
@@ -288,6 +288,9 @@ int main(int argc, char** argv)
             g->is_systemd = 1;
             argv++; argc--;
 #endif /* HAVE_SYSTEMD_DAEMON */
+	} else if (strcmp(argv[0], "-pidfile") == 0) {
+	    g->pidfile = argv[1];
+	    argv += 2; argc -= 2;
 	} else
 	    usage(g);
     }
@@ -372,8 +375,8 @@ static void run_daemon(EpmdVars *g)
     umask(0);
 
 #ifndef HAVE_SYSTEMD_DAEMON
-    if (create_pidfile() < 0) {
-        dbg_perror(g,"could not create pidfile %s", pidfile);
+    if (g->pidfile && create_pidfile(g->pidfile) < 0) {
+        dbg_perror(g,"could not create pidfile %s", g->pidfile);
         epmd_cleanup_exit(g,1);
     }
 #endif /* HAVE_SYSTEMD_DAEMON */
@@ -470,6 +473,8 @@ static void usage(EpmdVars *g)
     fprintf(stderr, "        get more debugging information.\n");
     fprintf(stderr, "    -daemon\n");
     fprintf(stderr, "        Start epmd detached (as a daemon)\n");
+    fprintf(stderr, "    -pidfile FileName\n");
+    fprintf(stderr, "        Create pidfile with specified FileName.\n");
     fprintf(stderr, "    -relaxed_command_check\n");
     fprintf(stderr, "        Allow this instance of epmd to be killed with\n");
     fprintf(stderr, "        epmd -kill even if there "
